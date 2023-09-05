@@ -1,47 +1,61 @@
 package jm.task.core.jdbc.util;
 
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
+
 import jm.task.core.jdbc.model.User;
-import org.hibernate.HibernateException;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
-import org.hibernate.service.ServiceRegistry;
+import org.hibernate.cfg.Environment;
+
 
 public class Util {
-    private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
-    private static final String HOST = "jdbc:mysql://localhost:3306/mydb";
-    private static final String LOGIN = "root";
+    private static final String URL = "jdbc:mysql://localhost:3306/mydb";
+    private static final String USER_NAME = "root";
     private static final String PASSWORD = "all310198";
-    private static SessionFactory sessionFactory = null;
+    private static Connection connection;
+    private static SessionFactory sessionFactory;
 
     public static SessionFactory getSessionFactory() {
-        try {
-            Configuration configuration = new Configuration()
-                    .setProperty("hibernate.connection.driver_class", DRIVER)
-                    .setProperty("hibernate.connection.url", HOST)
-                    .setProperty("hibernate.connection.username", LOGIN)
-                    .setProperty("hibernate.connection.password", PASSWORD)
-                    .setProperty("hibernate.dialect", "org.hibernate.dialect.MySQL5Dialect")
-                    .addAnnotatedClass(User.class)
-                    .setProperty("hibernate.c3p0.min_size", "5")
-                    .setProperty("hibernate.c3p0.max_size", "200")
-                    .setProperty("hibernate.c3p0.max_statements", "200")
-                    .setProperty("Environment.HBM2DDL_AUTO", "");
+        if (sessionFactory == null) {
+            try {
+                Properties properties= new Properties();
+                properties.put(Environment.DRIVER, "com.mysql.cj.jdbc.Driver");
+                properties.put(Environment.URL, "jdbc:mysql://localhost:3306/mydb");
+                properties.put(Environment.USER, "root");
+                properties.put(Environment.PASS, "all310198");
+                properties.put(Environment.DIALECT, "org.hibernate.dialect.MySQL5Dialect");
+                properties.put(Environment.SHOW_SQL, "true");
+                properties.put(Environment.CURRENT_SESSION_CONTEXT_CLASS, "thread");
+                properties.put(Environment.HBM2DDL_AUTO, "create-drop");
 
-            ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
-                    .applySettings(configuration.getProperties()).build();
-            sessionFactory = configuration.buildSessionFactory(serviceRegistry);
-        } catch (HibernateException e) {
-            e.printStackTrace();
+
+                sessionFactory = new Configuration()
+                        .addProperties(properties)
+                        .addAnnotatedClass(User.class)
+                        .buildSessionFactory();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return sessionFactory;
     }
 
-    public static SessionFactory closeConnection() {
-        sessionFactory.close();
-        return null;
+
+    public static Connection getConnection() {
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection(URL, USER_NAME, PASSWORD);
+        } catch (SQLException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return connection;
     }
 }

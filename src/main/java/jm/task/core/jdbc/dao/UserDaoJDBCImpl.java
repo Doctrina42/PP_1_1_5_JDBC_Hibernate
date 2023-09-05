@@ -2,108 +2,96 @@ package jm.task.core.jdbc.dao;
 
 import jm.task.core.jdbc.model.User;
 import jm.task.core.jdbc.util.Util;
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
 
-import javax.persistence.criteria.CriteriaQuery;
-import javax.transaction.SystemException;
+import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
-public class UserDaoJDBCImpl extends Util implements UserDao {
-    private final SessionFactory sessionFactory = getSessionFactory();
-    private Transaction transaction = null;
+public class UserDaoJDBCImpl implements UserDao {
+
+
     public UserDaoJDBCImpl() {
 
     }
 
-    @Override
-    public void createUsersTable()  {
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.beginTransaction();
-            session.createNativeQuery("CREATE TABLE IF NOT EXISTS users " + "(id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, " + "name VARCHAR(50) NOT NULL, lastName VARCHAR(50) NOT NULL, " + "age INT NOT NULL)").executeUpdate();
-            transaction.commit();
-        } catch (HibernateException e) {
-            e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
-            }
+    public void createUsersTable() {
+        try (Connection connection = Util.getConnection();
+             Statement statement = connection.createStatement()) {
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS user" +
+                    "(" +
+                    "id BIGINT AUTO_INCREMENT PRIMARY KEY," +
+                    "name VARCHAR(45) ," +
+                    "lastname VARCHAR(45) ," +
+                    "age TINYINT(10) " +
+                    ")");
+        } catch (SQLException e) {
+            System.out.println("При тестировании создания таблицы пользователей произошло исключение\n" + e.getMessage());
         }
+
     }
 
-    @Override
     public void dropUsersTable() {
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.beginTransaction();
-            session.createSQLQuery("DROP TABLE IF EXISTS users").executeUpdate();
-            transaction.commit();
-        } catch (HibernateException e) {
-            e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
-            }
+        try (Connection connection = Util.getConnection();
+             Statement statement = connection.createStatement()) {
+            statement.executeUpdate("DROP TABLE IF EXISTS user");
+            connection.close();
+        } catch (SQLException e) {
+            System.out.println("При тестировании удаления таблицы произошло исключение\n" + e.getMessage());
+
         }
+
     }
 
-    @Override
     public void saveUser(String name, String lastName, byte age) {
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.beginTransaction();
-            session.save(new User(name, lastName, age));
-            transaction.commit();
-        } catch (HibernateException e) {
-            e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
-            }
 
+        try (Connection connection = Util.getConnection();
+             PreparedStatement statement = connection.prepareStatement("INSERT INTO user VALUES (id,?,?,?)")) {
+            statement.setString(1, name);
+            statement.setString(2, lastName);
+            statement.setInt(3, age);
+            statement.executeUpdate();
+            connection.close();
+        } catch (SQLException e) {
+            System.out.println("Во время тестирования сохранения пользователя произошло исключение\n" + e.getMessage());
         }
     }
 
-    @Override
     public void removeUserById(long id) {
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.beginTransaction();
-            session.delete(session.get(User.class, id));
-            transaction.commit();
-        } catch (HibernateException e) {
-            e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
-            }
+        try (Connection connection = Util.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM user WHERE ID = ?")) {
+            statement.setLong(1, id);
+            statement.executeUpdate();
+            connection.close();
+        } catch (SQLException e) {
+            System.out.println("При тестировании удаления пользователя по id произошло исключение\n" + e.getMessage());
         }
     }
 
-    @Override
     public List<User> getAllUsers() {
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.beginTransaction();
-            CriteriaQuery<User> criteriaQuery = session.getCriteriaBuilder().createQuery(User.class);
-            criteriaQuery.from(User.class);
-            List<User> userList = session.createQuery(criteriaQuery).getResultList();
-            transaction.commit();
-            return userList;
-        } catch (HibernateException e) {
-            e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
+        List<User> list = new ArrayList<>();
+        try (Connection connection = Util.getConnection(); PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM User")) {
+            ResultSet resultSet = preparedStatement.executeQuery("SELECT * FROM User");
+            while (resultSet.next()) {
+                User user = new User();
+                user.setId(resultSet.getLong("id"));
+                user.setName(resultSet.getString("name"));
+                user.setLastName(resultSet.getString("lastName"));
+                user.setAge(resultSet.getByte("age"));
+                list.add(user);
             }
+        } catch (SQLException e) {
+            System.out.println("При попытке достать всех пользователей из базы данных произошло исключение\n" + e.getMessage());
         }
-        return null;
+        return list;
     }
 
-    @Override
     public void cleanUsersTable() {
-        try (Session session = sessionFactory.openSession()) {
-            transaction = session.beginTransaction();
-            session.createSQLQuery("TRUNCATE TABLE users;").executeUpdate();
-            transaction.commit();
-        } catch (HibernateException e) {
-            e.printStackTrace();
-            if (transaction != null) {
-                transaction.rollback();
-            }
+        try (Connection connection = Util.getConnection(); Statement statement = connection.createStatement()) {
+            statement.executeUpdate("TRUNCATE TABLE user");
+            connection.close();
+        } catch (SQLException e) {
+            System.out.println("При тестировании очистки таблицы пользователей произошло исключение\n" + e.getMessage());
         }
+
     }
 }

@@ -20,6 +20,10 @@
         </plugins>
     </build>
 
+    <properties>
+        <hibernate-version>5.0.1.Final</hibernate-version>
+    </properties>
+
     <dependencies>
 <!--         Ваши зависимости-->
          <!-- https://mvnrepository.com/artifact/junit/junit -->
@@ -48,6 +52,8 @@
             <artifactId>hibernate-core</artifactId>
             <version>5.6.3.Final</version>
         </dependency>
+
+
      </dependencies>
 
 </project>

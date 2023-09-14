@@ -9,14 +9,13 @@ import java.util.List;
 
 public class UserDaoJDBCImpl implements UserDao {
 
-
+    Connection connection = Util.getConnection();
     public UserDaoJDBCImpl() {
 
     }
 
     public void createUsersTable() {
-        try (Connection connection = Util.getConnection();
-             Statement statement = connection.createStatement()) {
+        try (Statement statement = connection.createStatement();) {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS user" +
                     "(" +
                     "id BIGINT AUTO_INCREMENT PRIMARY KEY," +
@@ -27,50 +26,55 @@ public class UserDaoJDBCImpl implements UserDao {
         } catch (SQLException e) {
             System.out.println("При тестировании создания таблицы пользователей произошло исключение\n" + e.getMessage());
         }
-
     }
 
     public void dropUsersTable() {
-        try (Connection connection = Util.getConnection();
-             Statement statement = connection.createStatement()) {
+        try (Statement statement = connection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS user");
-            connection.close();
         } catch (SQLException e) {
             System.out.println("При тестировании удаления таблицы произошло исключение\n" + e.getMessage());
-
         }
 
     }
 
     public void saveUser(String name, String lastName, byte age) {
-
-        try (Connection connection = Util.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO user VALUES (id,?,?,?)")) {
+        try (PreparedStatement statement = connection.prepareStatement("INSERT INTO user VALUES (id,?,?,?)")) {
+            connection.setAutoCommit(false);
             statement.setString(1, name);
             statement.setString(2, lastName);
             statement.setInt(3, age);
             statement.executeUpdate();
-            connection.close();
+            connection.commit();
         } catch (SQLException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
             System.out.println("Во время тестирования сохранения пользователя произошло исключение\n" + e.getMessage());
         }
     }
 
-    public void removeUserById(long id) {
-        try (Connection connection = Util.getConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM user WHERE ID = ?")) {
+    public void removeUserById(long id)  {
+        try (PreparedStatement statement = connection.prepareStatement("DELETE FROM user WHERE ID = ?")) {
+            connection.setAutoCommit(false);
             statement.setLong(1, id);
             statement.executeUpdate();
-            connection.close();
+            connection.commit();
         } catch (SQLException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
             System.out.println("При тестировании удаления пользователя по id произошло исключение\n" + e.getMessage());
         }
     }
 
-    public List<User> getAllUsers() {
+    public List<User> getAllUsers()  {
         List<User> list = new ArrayList<>();
-        try (Connection connection = Util.getConnection(); PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM User")) {
-            ResultSet resultSet = preparedStatement.executeQuery("SELECT * FROM User");
+        try (Statement statement = connection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM user");
             while (resultSet.next()) {
                 User user = new User();
                 user.setId(resultSet.getLong("id"));
@@ -78,6 +82,7 @@ public class UserDaoJDBCImpl implements UserDao {
                 user.setLastName(resultSet.getString("lastName"));
                 user.setAge(resultSet.getByte("age"));
                 list.add(user);
+                System.out.println(user);
             }
         } catch (SQLException e) {
             System.out.println("При попытке достать всех пользователей из базы данных произошло исключение\n" + e.getMessage());
@@ -86,9 +91,8 @@ public class UserDaoJDBCImpl implements UserDao {
     }
 
     public void cleanUsersTable() {
-        try (Connection connection = Util.getConnection(); Statement statement = connection.createStatement()) {
+        try (Statement statement = connection.createStatement()) {
             statement.executeUpdate("TRUNCATE TABLE user");
-            connection.close();
         } catch (SQLException e) {
             System.out.println("При тестировании очистки таблицы пользователей произошло исключение\n" + e.getMessage());
         }

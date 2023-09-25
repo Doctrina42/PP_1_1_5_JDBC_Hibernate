@@ -21,7 +21,7 @@ public class UserDaoJDBCImpl implements UserDao {
                     "id BIGINT AUTO_INCREMENT PRIMARY KEY," +
                     "name VARCHAR(45) ," +
                     "lastname VARCHAR(45) ," +
-                    "age TINYINT(10) " +
+                    "age BIT(10) " +
                     ")");
         } catch (SQLException e) {
             System.out.println("При тестировании создания таблицы пользователей произошло исключение\n" + e.getMessage());

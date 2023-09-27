@@ -25,7 +25,7 @@ public class UserDaoHibernateImpl implements UserDao {
                       `id` INT NOT NULL auto_increment primary key,
                       `name` VARCHAR(45) NULL,
                       `last_name` VARCHAR(45) NULL,
-                      `age` BIT NULL,
+                      `age` TINYINT NULL,
                       UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE);
                     """).executeUpdate();
 
